@@ -1,0 +1,12 @@
+# Java
+/**/*.jar
+
+# VSCode
+/**/.vscode/
+
+# IDEA
+/**/.idea/
+/**/*.iml
+
+# Go
+/**/*.exe

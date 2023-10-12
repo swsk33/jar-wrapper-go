@@ -1,0 +1,18 @@
+# 配置文件
+
+# 运行配置
+run:
+  # Java的运行路径，默认安装了Java运行环境的电脑直接填"java"即可，便携式jre需要在此指定，若指定为便携jre，则必须是相对路径，相对于生成的exe可执行文件的路径
+  # 例如指定为"java"时，那么程序会使用该命令执行jar文件：java -jar path/to/xxx.jar
+  # 如果指定为便携的jre，例如"jre/bin"，那么程序会使用该命令执行jar文件：jre/bin/java -jar path/to/xxx.jar
+  java-path: "java"
+  # 没有检测到Java运行环境时的提示内容
+  error-message: "未能找到可用的Java运行环境（jre）！请先安装Java 8运行环境！"
+  # 前置运行参数，即双击exe后自动加上的命令行参数，这个参数会先于命令行运行exe时加上的参数，该配置项为字符串数组类型
+  pre-parameters:
+# 日志相关
+log:
+  # 是否把程序的标准输出和标准错误重定向到本地文件，建议控制台应用程序不要开启此项
+  write-to-file: false
+  # 日志文件输出路径，为相对路径，为相对于可执行文件的位置，若上面变量write-to-file为false，则此配置项无效
+  path: "error.log"
