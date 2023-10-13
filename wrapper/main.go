@@ -9,8 +9,8 @@ import (
 )
 
 // 嵌入配置文件和jar文件
-
-//go:embed main.jar config.yaml
+//
+//go:embed main.jar config.yaml gui
 var fs embed.FS
 
 func init() {
@@ -24,7 +24,7 @@ func init() {
 }
 
 func main() {
-	// 先释放文件至临时文件夹
+	// 先释放全部文件至临时文件夹
 	e1 := util.ExtractAllFileInEmbedFS(fs, util.TempDirectory)
 	if e1 != nil {
 		util.ShowErrorDialog("启动失败！" + e1.Error())
@@ -34,12 +34,10 @@ func main() {
 	defer func(path string) {
 		_ = os.RemoveAll(path)
 	}(util.TempDirectory)
-	// 初始化Viper加载配置
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(util.TempDirectory)
-	e2 := viper.ReadInConfig()
-	if e2 != nil {
+	// 加载全部配置文件
+	e2 := config.ReadYAMLConfig(util.TempDirectory)
+	e3 := config.ReadGUIConfig(util.TempDirectory)
+	if e2 != nil || e3 != nil {
 		util.ShowErrorDialog("启动失败！配置读取错误！")
 		os.Exit(1)
 	}
@@ -49,12 +47,12 @@ func main() {
 		os.Exit(1)
 	}
 	// 运行jar文件
-	cmd, logFile := util.GetCmd()
-	e3 := cmd.Run()
-	if e3 != nil {
-		util.ShowErrorDialog("运行出现错误！" + e3.Error())
-	}
-	if logFile != nil {
+	cmd, logFile := util.GetJarRunCmd()
+	defer func(logFile *os.File) {
 		_ = logFile.Close()
+	}(logFile)
+	e4 := cmd.Run()
+	if e4 != nil {
+		util.ShowErrorDialog("运行出现错误！" + e4.Error())
 	}
 }

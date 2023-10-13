@@ -10,9 +10,25 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // 命令行对象实用方法
+
+// 获取一个通用的cmd命令对象
+//
+// name 要执行的命令程序或者路径
+// arg 命令参数
+//
+// 返回cmd命令对象
+func getCmd(name string, args ...string) *exec.Cmd {
+	cmd := exec.Command(name, args...)
+	// 如果程序为GUI程序，则阻止命令运行时弹出命令行窗口
+	if config.IsGUIApp {
+		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	}
+	return cmd
+}
 
 // JavaExists 检测java命令是否存在
 //
@@ -22,9 +38,9 @@ func JavaExists() bool {
 	javaCommand := viper.GetString(config.JavaPath)
 	var cmd *exec.Cmd = nil
 	if javaCommand == "java" {
-		cmd = exec.Command("java", "-version")
+		cmd = getCmd("java", "-version")
 	} else {
-		cmd = exec.Command(filepath.Join(SelfPath, javaCommand, "java"), "-version")
+		cmd = getCmd(filepath.Join(SelfPath, javaCommand, "java"), "-version")
 	}
 	err := cmd.Run()
 	return err == nil
@@ -44,14 +60,14 @@ func ShowErrorDialog(message string) {
 	_, _ = vbsFile.WriteString(gbkText)
 	_ = vbsFile.Close()
 	// 执行vbs脚本
-	cmd := exec.Command("wscript", vbsPath)
+	cmd := getCmd("wscript", vbsPath)
 	_ = cmd.Run()
 }
 
-// GetCmd 获取一个执行jar文件的命令对象
+// GetJarRunCmd 获取一个执行jar文件的命令对象
 //
 // 返回cmd命令对象和日志文件指针，若未配置输出为日志，则日志文件指针为nil
-func GetCmd() (*exec.Cmd, *os.File) {
+func GetJarRunCmd() (*exec.Cmd, *os.File) {
 	// 获取配置的Java路径或者命令
 	javaCommand := viper.GetString(config.JavaPath)
 	if javaCommand != "java" {
@@ -71,7 +87,7 @@ func GetCmd() (*exec.Cmd, *os.File) {
 		commandSlice = append(commandSlice, args[i])
 	}
 	// 构建cmd对象
-	cmd := exec.Command(javaCommand, commandSlice...)
+	cmd := getCmd(javaCommand, commandSlice...)
 	// 重定向程序输出
 	writeLog := viper.GetBool(config.WriteLogToFile)
 	var logFile *os.File = nil

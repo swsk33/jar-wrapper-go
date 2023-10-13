@@ -10,14 +10,14 @@ import (
 
 // 关于文件读写的实用类
 
-// ExtractEmbedFile 从嵌入文件系统中释放文件到指定目录
+// 从嵌入文件系统中释放文件到指定目录
 //
 // fs 嵌入文件系统对象
 // embedFilePath 嵌入的文件名或者相对路径
 // outputPath 释放到路径（完整路径，带文件名）
 //
 // 读取出错时，返回错误对象
-func ExtractEmbedFile(fs embed.FS, embedFilePath, outputPath string) error {
+func extractEmbedFile(fs embed.FS, embedFilePath, outputPath string) error {
 	// 先读取文件
 	content, e1 := fs.ReadFile(embedFilePath)
 	if e1 != nil {
@@ -52,7 +52,7 @@ func ExtractAllFileInEmbedFS(fs embed.FS, outputFolder string) error {
 		if item.IsDir() {
 			continue
 		}
-		e := ExtractEmbedFile(fs, item.Name(), filepath.Join(outputFolder, item.Name()))
+		e := extractEmbedFile(fs, item.Name(), filepath.Join(outputFolder, item.Name()))
 		if e != nil {
 			return e
 		}
