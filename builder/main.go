@@ -15,6 +15,8 @@ func printHelp() {
 	fmt.Println("\n用法：")
 	fmt.Println("\n* 输出帮助信息：")
 	fmt.Println("  jar2exe-go -h")
+	fmt.Println("\n* 输出版本信息：")
+	fmt.Println("  jar2exe-go -v")
 	fmt.Println("\n* 在当前目录下生成一个配置文件模板（config.yaml）：")
 	fmt.Println("  jar2exe-go init-config")
 	fmt.Println("\n* 打包jar为exe：")
@@ -47,6 +49,13 @@ func main() {
 	// 处理帮助信息
 	if util.GetParameterIndex("-h", args) == 1 {
 		printHelp()
+		return
+	}
+	// 处理版本信息
+	if util.GetParameterIndex("-v", args) == 1 {
+		color.HiGreen("jar2exe-go version 1.0.0")
+		fmt.Println("jar-wrapper-go builder by swsk33")
+		fmt.Println("This builder was developed using Golang")
 		return
 	}
 	// 生成配置模板

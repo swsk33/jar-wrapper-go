@@ -10,3 +10,6 @@
 
 # Go
 /**/*.exe
+
+# build
+/target/
