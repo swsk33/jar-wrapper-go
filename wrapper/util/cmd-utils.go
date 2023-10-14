@@ -15,6 +15,23 @@ import (
 
 // 命令行对象实用方法
 
+// JavaCommand 调用Java的命令（Java命令所在的路径）
+var JavaCommand = "java"
+
+// SetupJavaCommand 根据配置，初始化Java命令（Java命令所在的路径）
+func SetupJavaCommand() {
+	// 如果使用嵌入的JRE，那么直接指定路径为嵌入的JRE路径
+	if viper.GetBool(config.UseEmbedJRE) {
+		JavaCommand = filepath.Join(TempDirectory, "jre", "bin", "java")
+		return
+	}
+	// 如果指定了外部便携JRE路径，则转换为绝对路径
+	jrePath := viper.GetString(config.JavaPath)
+	if jrePath != "java" {
+		JavaCommand = filepath.Join(SelfPath, jrePath, "java")
+	}
+}
+
 // 获取一个通用的cmd命令对象
 //
 // name 要执行的命令程序或者路径
@@ -24,7 +41,7 @@ import (
 func getCmd(name string, args ...string) *exec.Cmd {
 	cmd := exec.Command(name, args...)
 	// 如果程序为GUI程序，则阻止命令运行时弹出命令行窗口
-	if config.IsGUIApp {
+	if viper.GetBool(config.WinAPP) {
 		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	}
 	return cmd
@@ -34,14 +51,7 @@ func getCmd(name string, args ...string) *exec.Cmd {
 //
 // 返回是否存在
 func JavaExists() bool {
-	// 获取配置的Java路径或者命令
-	javaCommand := viper.GetString(config.JavaPath)
-	var cmd *exec.Cmd = nil
-	if javaCommand == "java" {
-		cmd = getCmd("java", "-version")
-	} else {
-		cmd = getCmd(filepath.Join(SelfPath, javaCommand, "java"), "-version")
-	}
+	cmd := getCmd(JavaCommand, "-version")
 	err := cmd.Run()
 	return err == nil
 }
@@ -68,11 +78,6 @@ func ShowErrorDialog(message string) {
 //
 // 返回cmd命令对象和日志文件指针，若未配置输出为日志，则日志文件指针为nil
 func GetJarRunCmd() (*exec.Cmd, *os.File) {
-	// 获取配置的Java路径或者命令
-	javaCommand := viper.GetString(config.JavaPath)
-	if javaCommand != "java" {
-		javaCommand = filepath.Join(SelfPath, javaCommand, "java")
-	}
 	// 解析预先配置参数
 	preArgs := viper.GetStringSlice(config.PreParameters)
 	for i := range preArgs {
@@ -87,7 +92,7 @@ func GetJarRunCmd() (*exec.Cmd, *os.File) {
 		commandSlice = append(commandSlice, args[i])
 	}
 	// 构建cmd对象
-	cmd := getCmd(javaCommand, commandSlice...)
+	cmd := getCmd(JavaCommand, commandSlice...)
 	// 重定向程序输出
 	writeLog := viper.GetBool(config.WriteLogToFile)
 	var logFile *os.File = nil

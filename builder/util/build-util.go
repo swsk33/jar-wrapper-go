@@ -3,12 +3,23 @@ package util
 import (
 	"gitee.com/swsk33/jar-to-exe-go-builder/strategy"
 	"github.com/fatih/color"
+	"github.com/spf13/viper"
 	"os"
 	"os/exec"
 	"path/filepath"
 )
 
 // 一些构建相关实用函数
+
+// 一些可能需要修改的配置键
+const (
+	// 构建器相关配置前缀
+	buildPrefix = "build."
+	// 是否是窗体应用程序
+	isGUI = buildPrefix + "win-app"
+	// 是否使用嵌入的JRE
+	useEmbedJRE = buildPrefix + "use-embed-jre"
+)
 
 // BuildIconResource 构建图标资源
 //
@@ -51,11 +62,12 @@ func BuildIconResource(iconPath string) error {
 // gui 是否是窗体应用程序
 // arch 构建exe的架构
 // jar 原始jar文件路径
-// config 指定配置文件路径
+// config 指定输入配置文件路径
 // output 构建exe的输出位置
+// inputEmbedJRE 指定要嵌入的JRE文件夹，如果不使用嵌入的JRE，则该参数传入空字符串""
 //
 // 构建出错时，返回错误对象
-func BuildExe(gui bool, arch, jar, config, output string) error {
+func BuildExe(gui bool, arch, jar, config, output, inputEmbedJRE string) error {
 	// 处理路径
 	commandOutput := output
 	// 如果指定的是相对路径，则转换成绝对路径
@@ -78,10 +90,39 @@ func BuildExe(gui bool, arch, jar, config, output string) error {
 		color.Red("获取配置文件失败！")
 		return e3
 	}
-	e4 := ExtractEmbedFile("resource/gui", filepath.Join(WrapperPath, "gui"))
+	// 读取config.yaml
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(WrapperPath)
+	e4 := viper.ReadInConfig()
 	if e4 != nil {
-		color.Red("准备GUI配置失败！")
+		color.Red("读取运行配置文件失败！")
 		return e4
+	}
+	// 如果要使用嵌入的JRE，则将嵌入的JRE文件夹也复制到构建目录
+	// 否则，生成占位文件
+	isEmbedJRE := inputEmbedJRE != ""
+	viper.Set(useEmbedJRE, isEmbedJRE)
+	embedJRETargetPath := filepath.Join(WrapperPath, "jre")
+	if isEmbedJRE {
+		e := CopyFolder(inputEmbedJRE, embedJRETargetPath)
+		if e != nil {
+			color.Red("复制嵌入JRE文件夹失败！")
+			return e
+		}
+	} else {
+		_ = os.MkdirAll(embedJRETargetPath, 0755)
+		file, e1 := os.OpenFile(filepath.Join(embedJRETargetPath, "placeholder"), os.O_CREATE|os.O_WRONLY, 0755)
+		if e1 != nil {
+			color.Red("创建占位文件失败！")
+			return e1
+		}
+		_, e2 := file.WriteString("1")
+		if e2 != nil {
+			color.Red("写入占位文件失败！")
+			return e2
+		}
+		_ = file.Close()
 	}
 	// 获取构建变量
 	goArch, e5 := strategy.GetGoArchitecture(arch)
@@ -90,30 +131,26 @@ func BuildExe(gui bool, arch, jar, config, output string) error {
 	}
 	// 处理GUI应用程序情况
 	ldFlags := "-w -s"
+	// 修改运行配置中的GUI部分
+	viper.Set(isGUI, gui)
 	if gui {
 		// 添加额外编译符号
 		ldFlags += " -H=windowsgui"
-		// 修改gui配置文件
-		file, e1 := os.OpenFile(filepath.Join(WrapperPath, "gui"), os.O_WRONLY, 0755)
-		if e1 != nil {
-			color.Red("打开GUI配置文件失败！")
-			return e1
-		}
-		_, e2 := file.WriteString("y")
-		if e2 != nil {
-			color.Red("修改GUI配置文件失败！")
-			return e1
-		}
-		_ = file.Close()
+	}
+	// 构建之前刷入运行配置文件
+	e6 := viper.WriteConfig()
+	if e6 != nil {
+		color.Red("写入运行配置失败！")
+		return e6
 	}
 	// 执行构建命令
 	cmd := exec.Command("go", "build", "-ldflags", ldFlags, "-o", commandOutput)
 	cmd.Env = append(os.Environ(), goArch)
 	cmd.Dir = WrapperPath
-	e6 := cmd.Run()
-	if e6 != nil {
+	e7 := cmd.Run()
+	if e7 != nil {
 		color.Red("构建exe时发生错误！")
-		return e6
+		return e7
 	}
 	color.HiYellow("构建exe完成！")
 	return nil
@@ -123,8 +160,8 @@ func BuildExe(gui bool, arch, jar, config, output string) error {
 func CleanTemp() {
 	_ = os.Remove(filepath.Join(WrapperPath, "main.jar"))
 	_ = os.Remove(filepath.Join(WrapperPath, "config.yaml"))
-	_ = os.Remove(filepath.Join(WrapperPath, "gui"))
 	_ = os.Remove(filepath.Join(WrapperPath, "rsrc_windows_386.syso"))
 	_ = os.Remove(filepath.Join(WrapperPath, "rsrc_windows_amd64.syso"))
 	_ = os.RemoveAll(filepath.Join(WrapperPath, "winres"))
+	_ = os.RemoveAll(filepath.Join(WrapperPath, "jre"))
 }

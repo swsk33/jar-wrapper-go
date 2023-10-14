@@ -20,22 +20,30 @@ func printHelp() {
 	fmt.Println("\n* 在当前目录下生成一个配置文件模板（config.yaml）：")
 	fmt.Println("  jar2exe-go init-config")
 	fmt.Println("\n* 打包jar为exe：")
-	fmt.Println("  jar2exe-go -j jar文件路径 -o 输出exe路径 [-c 配置文件] [-a 架构] [-i exe图标路径] [-g]")
+	fmt.Println("  jar2exe-go -j jar文件路径 -o 输出exe路径 [-c 配置文件] [-a 架构] [-i exe图标路径] [-g] [--embed-jre] [--embed-jre-path 指定要嵌入的JRE文件夹]")
 	fmt.Println("\n打包jar为exe的参数说明：")
 	fmt.Println()
 	fmt.Println("  -j : 指定待打包的jar文件路径")
 	fmt.Println("  -o : 指定输出的exe文件路径")
-	fmt.Println("  -c : 可选参数，指定配置文件路径，如果未传入改参数，则默认使用当前路径下的config.yaml作为配置文件")
+	fmt.Println("  -c : 可选参数，指定配置文件路径")
+	fmt.Println("       如果未传入该参数，则默认使用当前路径下的config.yaml作为配置文件")
 	fmt.Println("  -a : 可选参数，指定输出exe文件的架构，可以是以下值：")
-	fmt.Println("    i386  输出为32位exe")
-	fmt.Println("    amd64 输出为64位exe，当未指定-a参数时使用该架构为默认值")
-	fmt.Println("  -i : 可选参数，指定exe图标，要求是分辨率不大于256x256的png图片文件")
-	fmt.Println("  -g : 可选参数，当加上该参数时表示被打包的jar是GUI窗体应用程序，那么运行exe时不会显示命令行窗口，默认为命令行程序，运行exe时会显示命令行窗口")
+	fmt.Println("       i386  输出为32位exe")
+	fmt.Println("       amd64 输出为64位exe")
+	fmt.Println("       当未指定-a参数时使用amd64架构")
+	fmt.Println("  -i : 可选参数，指定exe图标")
+	fmt.Println("       要求是分辨率不大于256x256的png图片文件")
+	fmt.Println("  -g : 可选参数，当加上该参数时表示被打包的jar是GUI窗体应用程序，那么运行exe时不会显示命令行窗口")
+	fmt.Println("       默认为命令行程序，运行exe时会显示命令行窗口")
+	fmt.Println("  --embed-jre      可选参数，当加上该参数时，将Java运行环境(jre)也嵌入至exe中去")
+	fmt.Println("                   若指定了该参数，则必须指定--embed-jre-path参数的值")
+	fmt.Println("  --embed-jre-path 可选参数，指定要嵌入至exe中的JRE文件夹")
+	fmt.Println("                   如果没有指定--embed-jre参数，那么--embed-jre-path参数无效")
 }
 
 // configTemplate 存放嵌入的配置文件的对象
 //
-//go:embed resource/config.yaml resource/winres-template/user.json resource/gui
+//go:embed resource/config.yaml resource/winres-template/user.json
 var configTemplate embed.FS
 
 func init() {
@@ -53,7 +61,7 @@ func main() {
 	}
 	// 处理版本信息
 	if util.GetParameterIndex("-v", args) == 1 {
-		color.HiGreen("jar2exe-go version 1.0.0")
+		color.HiGreen("jar2exe-go version 1.1.0")
 		fmt.Println("jar-wrapper-go builder by swsk33")
 		fmt.Println("This builder was developed using Golang")
 		return
@@ -101,10 +109,20 @@ func main() {
 			return
 		}
 	}
+	// 判断是否指定了嵌入JRE运行环境
+	embedJREPath := ""
+	if util.IsParameterExists("--embed-jre", args) {
+		path, e := util.GetParameterNext("--embed-jre-path", args)
+		if e != nil {
+			color.Red(e.Error())
+			return
+		}
+		embedJREPath = path
+	}
 	// 构建可执行程序
 	color.HiBlue("正在构建可执行文件...")
 	isGUI := util.IsParameterExists("-g", args)
-	e6 := util.BuildExe(isGUI, archValue, jarPath, configPath, outputPath)
+	e6 := util.BuildExe(isGUI, archValue, jarPath, configPath, outputPath, embedJREPath)
 	if e6 != nil {
 		color.Red(e6.Error())
 		return

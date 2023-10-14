@@ -8,9 +8,9 @@ import (
 	"os"
 )
 
-// 嵌入配置文件和jar文件
+// 嵌入配置文件、jar文件和便携式jre
 //
-//go:embed main.jar config.yaml gui
+//go:embed main.jar config.yaml jre
 var fs embed.FS
 
 func init() {
@@ -26,8 +26,13 @@ func init() {
 func main() {
 	// 先释放全部文件至临时文件夹
 	e1 := util.ExtractAllFileInEmbedFS(fs, util.TempDirectory)
+	e2 := util.ExtractEmbedFolder(fs, "jre", util.TempDirectory)
 	if e1 != nil {
 		util.ShowErrorDialog("启动失败！" + e1.Error())
+		os.Exit(1)
+	}
+	if e2 != nil {
+		util.ShowErrorDialog("启动失败！" + e2.Error())
 		os.Exit(1)
 	}
 	// 程序运行结束时删除临时文件
@@ -35,12 +40,13 @@ func main() {
 		_ = os.RemoveAll(path)
 	}(util.TempDirectory)
 	// 加载全部配置文件
-	e2 := config.ReadYAMLConfig(util.TempDirectory)
-	e3 := config.ReadGUIConfig(util.TempDirectory)
-	if e2 != nil || e3 != nil {
-		util.ShowErrorDialog("启动失败！配置读取错误！")
+	e3 := config.ReadYAMLConfig(util.TempDirectory)
+	if e3 != nil {
+		util.ShowErrorDialog("启动失败！配置读取错误！" + e3.Error())
 		os.Exit(1)
 	}
+	// 根据配置获得java命令路径
+	util.SetupJavaCommand()
 	// 检查jre
 	if !util.JavaExists() {
 		util.ShowErrorDialog(viper.GetString(config.ErrorMessage))
@@ -51,8 +57,8 @@ func main() {
 	defer func(logFile *os.File) {
 		_ = logFile.Close()
 	}(logFile)
-	e4 := cmd.Run()
-	if e4 != nil {
-		util.ShowErrorDialog("运行出现错误！" + e4.Error())
+	e5 := cmd.Run()
+	if e5 != nil {
+		util.ShowErrorDialog("运行出现错误！" + e5.Error())
 	}
 }

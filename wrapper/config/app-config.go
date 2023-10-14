@@ -1,11 +1,7 @@
 package config
 
 import (
-	"bufio"
 	"github.com/spf13/viper"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
 // 存放全部配置项名称的常量以及一些配置初始化逻辑
@@ -25,6 +21,12 @@ const (
 	WriteLogToFile = logPrefix + "write-to-file"
 	// LogPath 日志文件位置
 	LogPath = logPrefix + "path"
+	// 构建器生成的配置前缀
+	buildPrefix = "build."
+	// WinAPP 是否为GUI窗体应用程序
+	WinAPP = buildPrefix + "win-app"
+	// UseEmbedJRE 是否使用嵌入的JRE
+	UseEmbedJRE = buildPrefix + "use-embed-jre"
 )
 
 // ReadYAMLConfig 读取config.yaml中全部配置
@@ -39,33 +41,6 @@ func ReadYAMLConfig(path string) error {
 	e := viper.ReadInConfig()
 	if e != nil {
 		return e
-	}
-	return nil
-}
-
-// IsGUIApp 该应用程序是否是GUI应用程序
-var IsGUIApp = false
-
-// ReadGUIConfig 读取gui配置文件中内容，并设定给一个全局变量
-//
-// path 配置文件所在目录
-//
-// 读取出错时返回错误
-func ReadGUIConfig(path string) error {
-	file, e1 := os.Open(filepath.Join(path, "gui"))
-	if e1 != nil {
-		return e1
-	}
-	defer func(file *os.File) {
-		_ = file.Close()
-	}(file)
-	reader := bufio.NewReader(file)
-	content, _, e2 := reader.ReadLine()
-	if e2 != nil {
-		return e2
-	}
-	if strings.TrimSpace(string(content)) == "y" {
-		IsGUIApp = true
 	}
 	return nil
 }

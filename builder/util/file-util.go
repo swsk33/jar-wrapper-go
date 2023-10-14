@@ -4,22 +4,10 @@ import (
 	"bufio"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 // 文件实用类
-
-// FileExists 判断文件是否存在
-//
-// filePath 判断的文件路径
-//
-// 返回文件是否存在
-func FileExists(filePath string) bool {
-	_, e := os.Stat(filePath)
-	if e == nil {
-		return true
-	}
-	return !os.IsNotExist(e)
-}
 
 // CopyFile 复制文件
 //
@@ -32,6 +20,8 @@ func CopyFile(origin, dest string) error {
 	if e1 != nil {
 		return e1
 	}
+	// 先创建文件夹
+	_ = os.MkdirAll(filepath.Dir(dest), 0755)
 	destFile, e2 := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY, 0755)
 	if e2 != nil {
 		return e2
@@ -49,5 +39,36 @@ func CopyFile(origin, dest string) error {
 	}
 	_ = originFile.Close()
 	_ = destFile.Close()
+	return nil
+}
+
+// CopyFolder 复制一整个文件夹
+//
+// origin 被复制的文件夹路径
+// dest 复制文件夹的目标路径
+//
+// 复制出错时，返回错误对象
+func CopyFolder(origin, dest string) error {
+	// 打印当前文件夹内文件
+	list, e1 := os.ReadDir(origin)
+	if e1 != nil {
+		return e1
+	}
+	// 进行遍历操作
+	for _, item := range list {
+		// 如果是文件，则复制文件到目的路径
+		if !item.IsDir() {
+			e := CopyFile(filepath.Join(origin, item.Name()), filepath.Join(dest, item.Name()))
+			if e != nil {
+				return e
+			}
+		} else {
+			// 如果是文件夹，则进行递归复制
+			e := CopyFolder(filepath.Join(origin, item.Name()), filepath.Join(dest, item.Name()))
+			if e != nil {
+				return e
+			}
+		}
+	}
 	return nil
 }

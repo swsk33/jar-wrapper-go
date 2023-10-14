@@ -16,3 +16,10 @@ log:
   write-to-file: false
   # 日志文件输出路径，为相对路径，为相对于可执行文件的位置，若上面变量write-to-file为false，则此配置项无效
   path: "error.log"
+# 构建器自动生成和修改的选项，请勿手动修改！
+build:
+  # 是否为窗体应用程序
+  win-app: false
+  # 是否使用内嵌的JRE
+  # 若开启此项，run.java-path将无效
+  use-embed-jre: false

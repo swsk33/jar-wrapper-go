@@ -23,6 +23,8 @@ func extractEmbedFile(fs embed.FS, embedFilePath, outputPath string) error {
 	if e1 != nil {
 		return errors.New("读取内嵌文件错误！")
 	}
+	// 先创建目录
+	_ = os.MkdirAll(filepath.Dir(outputPath), 0755)
 	// 创建输出文件对象
 	file, e2 := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY, 0755)
 	if e2 != nil {
@@ -55,6 +57,41 @@ func ExtractAllFileInEmbedFS(fs embed.FS, outputFolder string) error {
 		e := extractEmbedFile(fs, item.Name(), filepath.Join(outputFolder, item.Name()))
 		if e != nil {
 			return e
+		}
+	}
+	return nil
+}
+
+// ExtractEmbedFolder 递归释放嵌入的一个文件夹至某个目录
+//
+// fs 嵌入文件系统对象
+// embedFolderPath 嵌入的目录名称或者路径
+// outputDirectory 释放至的目录
+//
+// 出现错误时返回错误对象
+func ExtractEmbedFolder(fs embed.FS, embedFolderPath, outputDirectory string) error {
+	// 列出当前指定的嵌入的文件夹中的文件列表
+	list, _ := fs.ReadDir(embedFolderPath)
+	// 遍历
+	for _, item := range list {
+		// 处理路径
+		currentEmbedFile := ""
+		if embedFolderPath != "." {
+			currentEmbedFile = embedFolderPath + "/"
+		}
+		// 如果是文件，执行释放
+		if !item.IsDir() {
+			currentEmbedFile += item.Name()
+			e := extractEmbedFile(fs, currentEmbedFile, filepath.Join(outputDirectory, currentEmbedFile))
+			if e != nil {
+				return e
+			}
+		} else {
+			// 如果是目录，则进行递归操作
+			e := ExtractEmbedFolder(fs, currentEmbedFile+item.Name(), outputDirectory)
+			if e != nil {
+				return e
+			}
 		}
 	}
 	return nil
