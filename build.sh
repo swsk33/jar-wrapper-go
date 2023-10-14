@@ -36,9 +36,9 @@ echo 开始复制包装器模板...
 cp -rf ../wrapper/ ./amd64/
 cp -rf ../wrapper/ ./i386/
 cd ./amd64/wrapper
-rm -rf main.jar config.yaml gui *.syso *.md .idea/ winres/
+rm -rf main.jar config.yaml gui *.syso *.md .idea/ winres/ jre/
 cd ../../i386/wrapper
-rm -rf main.jar config.yaml gui *.syso *.md .idea/ winres/
+rm -rf main.jar config.yaml gui *.syso *.md .idea/ winres/ jre/
 
 # 打包
 echo 进行打包...
