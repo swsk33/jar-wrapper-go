@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 // 一些构建相关实用函数
@@ -57,6 +58,38 @@ func BuildIconResource(iconPath string) error {
 	return nil
 }
 
+// GenerateJREFolder 根据一个jar文件，调用jlink命令生成一个精简版JRE文件夹
+//
+// jarPath jar文件路径
+// outputJREPath 生成的JRE文件夹路径
+//
+// 发生错误时返回错误对象
+func GenerateJREFolder(jarPath, outputJREPath string) error {
+	// 分析jar文件
+	color.HiBlue("正在分析jar依赖关系...")
+	jdepsCmd := exec.Command("jdeps", "--list-deps", jarPath)
+	cmdResult, e1 := jdepsCmd.Output()
+	if e1 != nil {
+		color.Red("分析jar依赖关系时出错！")
+		return e1
+	}
+	dependencies := strings.Split(string(cmdResult), "\n")
+	dependencies = dependencies[:len(dependencies)-1]
+	for i := range dependencies {
+		dependencies[i] = strings.TrimSpace(dependencies[i])
+	}
+	// 生成JRE文件夹
+	color.HiBlue("正在生成JRE文件夹...")
+	jlinkCmd := exec.Command("jlink", "--module-path", filepath.Join("%JAVA_HOME%", "jmods"), "--add-modules", strings.Join(dependencies, ","), "--output", outputJREPath)
+	e2 := jlinkCmd.Run()
+	if e2 != nil {
+		color.Red("生成JRE文件夹时出错！")
+		return e2
+	}
+	color.HiYellow("生成精简JRE完成！")
+	return nil
+}
+
 // BuildExe 将jar文件构建为exe
 //
 // gui 是否是窗体应用程序
@@ -64,16 +97,16 @@ func BuildIconResource(iconPath string) error {
 // jar 原始jar文件路径
 // config 指定输入配置文件路径
 // output 构建exe的输出位置
-// inputEmbedJRE 指定要嵌入的JRE文件夹，如果不使用嵌入的JRE，则该参数传入空字符串""
+// inputEmbedJRE 指定要嵌入的JRE文件夹，如果不使用嵌入的JRE，则该参数传入空字符串""，如果要使用自动嵌入JRE功能，则传入"?"
 //
 // 构建出错时，返回错误对象
 func BuildExe(gui bool, arch, jar, config, output, inputEmbedJRE string) error {
 	// 处理路径
-	commandOutput := output
+	exeOutput := output
 	// 如果指定的是相对路径，则转换成绝对路径
 	if !filepath.IsAbs(output) {
 		var e1 error
-		commandOutput, e1 = filepath.Abs(output)
+		exeOutput, e1 = filepath.Abs(output)
 		if e1 != nil {
 			color.Red("指定的输出路径有误！")
 			return e1
@@ -99,30 +132,41 @@ func BuildExe(gui bool, arch, jar, config, output, inputEmbedJRE string) error {
 		color.Red("读取运行配置文件失败！")
 		return e4
 	}
-	// 如果要使用嵌入的JRE，则将嵌入的JRE文件夹也复制到构建目录
-	// 否则，生成占位文件
-	isEmbedJRE := inputEmbedJRE != ""
-	viper.Set(useEmbedJRE, isEmbedJRE)
+	// 处理嵌入JRE逻辑
 	embedJRETargetPath := filepath.Join(WrapperPath, "jre")
-	if isEmbedJRE {
-		e := CopyFolder(inputEmbedJRE, embedJRETargetPath)
+	// 如果开启了自动嵌入JRE功能，则生成JRE文件夹并修改配置
+	if inputEmbedJRE == "?" {
+		e := GenerateJREFolder(jar, embedJRETargetPath)
 		if e != nil {
-			color.Red("复制嵌入JRE文件夹失败！")
 			return e
 		}
+		viper.Set(useEmbedJRE, true)
 	} else {
-		_ = os.MkdirAll(embedJRETargetPath, 0755)
-		file, e1 := os.OpenFile(filepath.Join(embedJRETargetPath, "placeholder"), os.O_CREATE|os.O_WRONLY, 0755)
-		if e1 != nil {
-			color.Red("创建占位文件失败！")
-			return e1
+		// 否则，判断是使用手动指定的JRE进行嵌入还是不使用嵌入JRE
+		isEmbedJRE := inputEmbedJRE != ""
+		viper.Set(useEmbedJRE, isEmbedJRE)
+		// 如果要使用嵌入的JRE，则将嵌入的JRE文件夹也复制到构建目录
+		if isEmbedJRE {
+			e := CopyFolder(inputEmbedJRE, embedJRETargetPath)
+			if e != nil {
+				color.Red("复制嵌入JRE文件夹失败！")
+				return e
+			}
+		} else {
+			// 否则，生成占位文件
+			_ = os.MkdirAll(embedJRETargetPath, 0755)
+			file, e1 := os.OpenFile(filepath.Join(embedJRETargetPath, "placeholder"), os.O_CREATE|os.O_WRONLY, 0755)
+			if e1 != nil {
+				color.Red("创建占位文件失败！")
+				return e1
+			}
+			_, e2 := file.WriteString("1")
+			if e2 != nil {
+				color.Red("写入占位文件失败！")
+				return e2
+			}
+			_ = file.Close()
 		}
-		_, e2 := file.WriteString("1")
-		if e2 != nil {
-			color.Red("写入占位文件失败！")
-			return e2
-		}
-		_ = file.Close()
 	}
 	// 获取构建变量
 	goArch, e5 := strategy.GetGoArchitecture(arch)
@@ -144,7 +188,7 @@ func BuildExe(gui bool, arch, jar, config, output, inputEmbedJRE string) error {
 		return e6
 	}
 	// 执行构建命令
-	cmd := exec.Command("go", "build", "-ldflags", ldFlags, "-o", commandOutput)
+	cmd := exec.Command("go", "build", "-ldflags", ldFlags, "-o", exeOutput)
 	cmd.Env = append(os.Environ(), goArch)
 	cmd.Dir = WrapperPath
 	e7 := cmd.Run()

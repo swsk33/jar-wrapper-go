@@ -20,7 +20,7 @@ func printHelp() {
 	fmt.Println("\n* 在当前目录下生成一个配置文件模板（config.yaml）：")
 	fmt.Println("  jar2exe-go init-config")
 	fmt.Println("\n* 打包jar为exe：")
-	fmt.Println("  jar2exe-go -j jar文件路径 -o 输出exe路径 [-c 配置文件] [-a 架构] [-i exe图标路径] [-g] [--embed-jre] [--embed-jre-path 指定要嵌入的JRE文件夹]")
+	fmt.Println("  jar2exe-go -j jar文件路径 -o 输出exe路径 [-c 配置文件] [-a 架构] [-i exe图标路径] [-g] [--embed-jre] [--embed-jre-path 指定要嵌入的JRE文件夹] [--auto-embed-jre]")
 	fmt.Println("\n打包jar为exe的参数说明：")
 	fmt.Println()
 	fmt.Println("  -j : 指定待打包的jar文件路径")
@@ -39,6 +39,9 @@ func printHelp() {
 	fmt.Println("                   若指定了该参数，则必须指定--embed-jre-path参数的值")
 	fmt.Println("  --embed-jre-path 可选参数，指定要嵌入至exe中的JRE文件夹")
 	fmt.Println("                   如果没有指定--embed-jre参数，那么--embed-jre-path参数无效")
+	fmt.Println("  --auto-embed-jre 可选参数，当加上该参数时，构建器将自动分析jar所依赖的模块，并自动生成一个JRE文件夹嵌入到exe中去")
+	fmt.Println("                   使用该参数时，--embed-jre参数和--embed-jre-path参数都将无效")
+	fmt.Println("                   使用该功能要求本地已安装并正确配置了JDK 9及其以上版本的JDK")
 }
 
 // configTemplate 存放嵌入的配置文件的对象
@@ -61,7 +64,7 @@ func main() {
 	}
 	// 处理版本信息
 	if util.GetParameterIndex("-v", args) == 1 {
-		color.HiGreen("jar2exe-go version 1.1.0")
+		color.HiGreen("jar2exe-go version 1.2.0")
 		fmt.Println("jar-wrapper-go builder by swsk33")
 		fmt.Println("This builder was developed using Golang")
 		return
@@ -111,13 +114,19 @@ func main() {
 	}
 	// 判断是否指定了嵌入JRE运行环境
 	embedJREPath := ""
-	if util.IsParameterExists("--embed-jre", args) {
-		path, e := util.GetParameterNext("--embed-jre-path", args)
-		if e != nil {
-			color.Red(e.Error())
-			return
+	// 如果指定了使用自动嵌入JRE功能
+	if util.IsParameterExists("--auto-embed-jre", args) {
+		embedJREPath = "?"
+	} else {
+		// 否则，判断是否是手动指定的要嵌入的JRE
+		if util.IsParameterExists("--embed-jre", args) {
+			path, e := util.GetParameterNext("--embed-jre-path", args)
+			if e != nil {
+				color.Red(e.Error())
+				return
+			}
+			embedJREPath = path
 		}
-		embedJREPath = path
 	}
 	// 构建可执行程序
 	color.HiBlue("正在构建可执行文件...")

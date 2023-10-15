@@ -31,7 +31,7 @@
 		"#1": {
 			"0000": {
 				"fixed": {
-					"file_version": "1.1.0.0"
+					"file_version": "1.2.0.0"
 				},
 				"info": {
 					"2052": {
@@ -40,7 +40,7 @@
 						"LegalCopyright": "© swsk33",
 						"OriginalFilename": "jar2exe-go.exe",
 						"ProductName": "jar包装器-Go",
-						"ProductVersion": "1.1.0.0"
+						"ProductVersion": "1.2.0.0"
 					}
 				}
 			}
