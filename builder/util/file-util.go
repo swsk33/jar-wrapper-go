@@ -9,6 +9,17 @@ import (
 
 // 文件实用类
 
+// FileExists 判断文件或者文件夹是否存在
+//
+// filePath 文件或者文件夹路径
+func FileExists(filePath string) bool {
+	_, e := os.Stat(filePath)
+	if e == nil {
+		return true
+	}
+	return !os.IsNotExist(e)
+}
+
 // CopyFile 复制文件
 //
 // origin 原始文件路径
@@ -16,15 +27,15 @@ import (
 //
 // 若复制过程出现错误，则会返回错误对象
 func CopyFile(origin, dest string) error {
-	originFile, e1 := os.OpenFile(origin, os.O_RDONLY, 0755)
-	if e1 != nil {
-		return e1
+	originFile, e := os.OpenFile(origin, os.O_RDONLY, 0755)
+	if e != nil {
+		return e
 	}
 	// 先创建文件夹
 	_ = os.MkdirAll(filepath.Dir(dest), 0755)
-	destFile, e2 := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY, 0755)
-	if e2 != nil {
-		return e2
+	destFile, e := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY, 0755)
+	if e != nil {
+		return e
 	}
 	reader := bufio.NewReader(originFile)
 	buffer := make([]byte, 64)
@@ -50,9 +61,9 @@ func CopyFile(origin, dest string) error {
 // 复制出错时，返回错误对象
 func CopyFolder(origin, dest string) error {
 	// 打印当前文件夹内文件
-	list, e1 := os.ReadDir(origin)
-	if e1 != nil {
-		return e1
+	list, e := os.ReadDir(origin)
+	if e != nil {
+		return e
 	}
 	// 进行遍历操作
 	for _, item := range list {

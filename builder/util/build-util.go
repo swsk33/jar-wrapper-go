@@ -2,7 +2,7 @@ package util
 
 import (
 	"gitee.com/swsk33/jar-to-exe-go-builder/strategy"
-	"github.com/fatih/color"
+	"gitee.com/swsk33/sclog"
 	"github.com/spf13/viper"
 	"os"
 	"os/exec"
@@ -30,31 +30,31 @@ const (
 func BuildIconResource(iconPath string) error {
 	// 准备资源文件
 	winresPath := filepath.Join(WrapperPath, "winres")
-	e1 := os.Mkdir(winresPath, 0755)
-	if e1 != nil {
-		color.Red("创建资源文件夹出错！")
-		return e1
+	e := os.Mkdir(winresPath, 0755)
+	if e != nil {
+		sclog.ErrorLine("创建资源文件夹出错！")
+		return e
 	}
-	e2 := ExtractEmbedFile("resource/winres-template/user.json", filepath.Join(winresPath, "winres.json"))
-	if e2 != nil {
-		color.Red("创建清单文件时出错！")
-		return e2
+	e = ExtractEmbedFile("resource/winres-template/user.json", filepath.Join(winresPath, "winres.json"))
+	if e != nil {
+		sclog.ErrorLine("创建清单文件时出错！")
+		return e
 	}
-	e3 := CopyFile(iconPath, filepath.Join(winresPath, "icon.png"))
-	if e3 != nil {
-		color.Red("复制资源文件时出错！")
-		return e3
+	e = CopyFile(iconPath, filepath.Join(winresPath, "icon.png"))
+	if e != nil {
+		sclog.ErrorLine("复制资源文件时出错！")
+		return e
 	}
 	// 开始编译资源
 	cmd := exec.Command("go-winres", "make")
 	cmd.Dir = WrapperPath
-	e4 := cmd.Run()
-	if e4 != nil {
-		color.Red("编译资源文件时出错！")
-		color.Red("可能是图片文件损坏或者超过了256x256大小！")
-		return e4
+	e = cmd.Run()
+	if e != nil {
+		sclog.ErrorLine("编译资源文件时出错！")
+		sclog.ErrorLine("可能是图片文件损坏或者超过了256x256大小！")
+		return e
 	}
-	color.HiYellow("构建资源文件完成！")
+	sclog.InfoLine("构建资源文件完成！")
 	return nil
 }
 
@@ -66,12 +66,12 @@ func BuildIconResource(iconPath string) error {
 // 发生错误时返回错误对象
 func GenerateJREFolder(jarPath, outputJREPath string) error {
 	// 分析jar文件
-	color.HiBlue("正在分析jar依赖关系...")
+	sclog.InfoLine("正在分析jar依赖关系...")
 	jdepsCmd := exec.Command("jdeps", "--list-deps", jarPath)
-	cmdResult, e1 := jdepsCmd.Output()
-	if e1 != nil {
-		color.Red("分析jar依赖关系时出错！")
-		return e1
+	cmdResult, e := jdepsCmd.Output()
+	if e != nil {
+		sclog.ErrorLine("分析jar依赖关系时出错！")
+		return e
 	}
 	dependencies := strings.Split(string(cmdResult), "\n")
 	dependencies = dependencies[:len(dependencies)-1]
@@ -79,14 +79,14 @@ func GenerateJREFolder(jarPath, outputJREPath string) error {
 		dependencies[i] = strings.TrimSpace(dependencies[i])
 	}
 	// 生成JRE文件夹
-	color.HiBlue("正在生成JRE文件夹...")
+	sclog.InfoLine("正在生成JRE文件夹...")
 	jlinkCmd := exec.Command("jlink", "--module-path", filepath.Join("%JAVA_HOME%", "jmods"), "--add-modules", strings.Join(dependencies, ","), "--output", outputJREPath)
-	e2 := jlinkCmd.Run()
-	if e2 != nil {
-		color.Red("生成JRE文件夹时出错！")
-		return e2
+	e = jlinkCmd.Run()
+	if e != nil {
+		sclog.ErrorLine("生成JRE文件夹时出错！")
+		return e
 	}
-	color.HiYellow("生成精简JRE完成！")
+	sclog.InfoLine("生成精简JRE完成！")
 	return nil
 }
 
@@ -103,40 +103,40 @@ func GenerateJREFolder(jarPath, outputJREPath string) error {
 func BuildExe(gui bool, arch, jar, config, output, inputEmbedJRE string) error {
 	// 处理路径
 	exeOutput := output
+	var e error
 	// 如果指定的是相对路径，则转换成绝对路径
 	if !filepath.IsAbs(output) {
-		var e1 error
-		exeOutput, e1 = filepath.Abs(output)
-		if e1 != nil {
-			color.Red("指定的输出路径有误！")
-			return e1
+		exeOutput, e = filepath.Abs(output)
+		if e != nil {
+			sclog.ErrorLine("指定的输出路径有误！")
+			return e
 		}
 	}
 	// 准备文件
-	e2 := CopyFile(jar, filepath.Join(WrapperPath, "main.jar"))
-	if e2 != nil {
-		color.Red("获取jar文件失败！")
-		return e2
+	e = CopyFile(jar, filepath.Join(WrapperPath, "main.jar"))
+	if e != nil {
+		sclog.ErrorLine("获取jar文件失败！")
+		return e
 	}
-	e3 := CopyFile(config, filepath.Join(WrapperPath, "config.yaml"))
-	if e3 != nil {
-		color.Red("获取配置文件失败！")
-		return e3
+	e = CopyFile(config, filepath.Join(WrapperPath, "config.yaml"))
+	if e != nil {
+		sclog.ErrorLine("获取配置文件失败！")
+		return e
 	}
 	// 读取config.yaml
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(WrapperPath)
-	e4 := viper.ReadInConfig()
-	if e4 != nil {
-		color.Red("读取运行配置文件失败！")
-		return e4
+	e = viper.ReadInConfig()
+	if e != nil {
+		sclog.ErrorLine("读取运行配置文件失败！")
+		return e
 	}
 	// 处理嵌入JRE逻辑
 	embedJRETargetPath := filepath.Join(WrapperPath, "jre")
 	// 如果开启了自动嵌入JRE功能，则生成JRE文件夹并修改配置
 	if inputEmbedJRE == "?" {
-		e := GenerateJREFolder(jar, embedJRETargetPath)
+		e = GenerateJREFolder(jar, embedJRETargetPath)
 		if e != nil {
 			return e
 		}
@@ -147,31 +147,31 @@ func BuildExe(gui bool, arch, jar, config, output, inputEmbedJRE string) error {
 		viper.Set(useEmbedJRE, isEmbedJRE)
 		// 如果要使用嵌入的JRE，则将嵌入的JRE文件夹也复制到构建目录
 		if isEmbedJRE {
-			e := CopyFolder(inputEmbedJRE, embedJRETargetPath)
+			e = CopyFolder(inputEmbedJRE, embedJRETargetPath)
 			if e != nil {
-				color.Red("复制嵌入JRE文件夹失败！")
+				sclog.ErrorLine("复制嵌入JRE文件夹失败！")
 				return e
 			}
 		} else {
 			// 否则，生成占位文件
 			_ = os.MkdirAll(embedJRETargetPath, 0755)
-			file, e1 := os.OpenFile(filepath.Join(embedJRETargetPath, "placeholder"), os.O_CREATE|os.O_WRONLY, 0755)
-			if e1 != nil {
-				color.Red("创建占位文件失败！")
-				return e1
+			file, e := os.OpenFile(filepath.Join(embedJRETargetPath, "placeholder"), os.O_CREATE|os.O_WRONLY, 0755)
+			if e != nil {
+				sclog.ErrorLine("创建占位文件失败！")
+				return e
 			}
-			_, e2 := file.WriteString("1")
-			if e2 != nil {
-				color.Red("写入占位文件失败！")
-				return e2
+			_, e = file.Write([]byte{0})
+			if e != nil {
+				sclog.ErrorLine("写入占位文件失败！")
+				return e
 			}
 			_ = file.Close()
 		}
 	}
 	// 获取构建变量
-	goArch, e5 := strategy.GetGoArchitecture(arch)
-	if e5 != nil {
-		return e5
+	goArch, e := strategy.GetGoArchitecture(arch)
+	if e != nil {
+		return e
 	}
 	// 处理GUI应用程序情况
 	ldFlags := "-w -s"
@@ -182,21 +182,21 @@ func BuildExe(gui bool, arch, jar, config, output, inputEmbedJRE string) error {
 		ldFlags += " -H=windowsgui"
 	}
 	// 构建之前刷入运行配置文件
-	e6 := viper.WriteConfig()
-	if e6 != nil {
-		color.Red("写入运行配置失败！")
-		return e6
+	e = viper.WriteConfig()
+	if e != nil {
+		sclog.ErrorLine("写入运行配置失败！")
+		return e
 	}
 	// 执行构建命令
 	cmd := exec.Command("go", "build", "-ldflags", ldFlags, "-o", exeOutput)
 	cmd.Env = append(os.Environ(), goArch)
 	cmd.Dir = WrapperPath
-	e7 := cmd.Run()
-	if e7 != nil {
-		color.Red("构建exe时发生错误！")
-		return e7
+	e = cmd.Run()
+	if e != nil {
+		sclog.ErrorLine("构建exe时发生错误！")
+		return e
 	}
-	color.HiYellow("构建exe完成！")
+	sclog.InfoLine("构建exe完成！")
 	return nil
 }
 

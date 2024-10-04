@@ -26,21 +26,21 @@ func SetEmbedContainer(fs *embed.FS) {
 // 读取出错时，返回错误对象
 func ExtractEmbedFile(embedFilePath, outputPath string) error {
 	// 先读取文件
-	content, e1 := container.ReadFile(embedFilePath)
-	if e1 != nil {
-		return e1
+	content, e := container.ReadFile(embedFilePath)
+	if e != nil {
+		return e
 	}
 	// 创建输出文件对象
-	file, e2 := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY, 0755)
-	if e2 != nil {
-		return e2
+	file, e := os.OpenFile(outputPath, os.O_CREATE|os.O_WRONLY, 0755)
+	if e != nil {
+		return e
 	}
 	// 创建写入器
 	writer := bufio.NewWriter(file)
 	// 写入文件
-	_, e3 := writer.Write(content)
-	if e3 != nil {
-		return e3
+	_, e = writer.Write(content)
+	if e != nil {
+		return e
 	}
 	_ = writer.Flush()
 	_ = file.Close()
