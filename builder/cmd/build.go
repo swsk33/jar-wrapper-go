@@ -26,11 +26,22 @@ var (
 	autoEmbedJre bool
 )
 
+// 示例命令
+var buildExamples = []*util.CommandExample{
+	{"jar2exe-go build demo.jar demo.exe", "将当前目录下demo.jar构建打包为demo.exe到当前目录下，使用当前目录下config.yaml作为配置文件"},
+	{"jar2exe-go build demo.jar demo.exe -c dir/config.yaml", "将当前目录下demo.jar构建打包为demo.exe，使用./dir/config.yaml作为配置文件"},
+	{"jar2exe-go build demo.jar demo.exe -i gopher.png", "将当前目录下demo.jar构建打包为demo.exe，使用gopher.png作为exe图标"},
+	{"jar2exe-go build demo.jar demo.exe -g", "将当前目录下demo.jar构建打包为demo.exe，该程序为窗体应用程序"},
+	{"jar2exe-go build demo.jar demo.exe --embed-jre --embed-jre-path jre17", "将当前目录下demo.jar构建打包为demo.exe，并内嵌JRE文件夹：./jre17作为内嵌的运行环境"},
+	{"jar2exe-go build demo.jar demo.exe --auto-embed-jre", "将当前目录下demo.jar构建打包为demo.exe，并自动内嵌JRE运行环境"},
+}
+
 // 构建jar为exe的子命令
 var buildCmd = &cobra.Command{
-	Use:   "build",
-	Short: "构建jar为exe",
-	Long:  "将指定的jar文件打包构建为exe文件，命令用法为：\n  jar2exe-go jar文件路径 输出exe路径 [-c 配置文件] [-a 架构] [-i exe图标路径] [-g] [--embed-jre] [--embed-jre-path 指定要嵌入的JRE文件夹] [--auto-embed-jre]",
+	Use:     "build",
+	Short:   "构建jar为exe",
+	Long:    "将指定的jar文件打包构建为exe文件，命令用法为：\n  jar2exe-go jar文件路径 输出exe路径 [-c 配置文件] [-a 架构] [-i exe图标路径] [-g] [--embed-jre] [--embed-jre-path 指定要嵌入的JRE文件夹] [--auto-embed-jre]",
+	Example: util.ExampleToString(buildExamples...),
 	// 参数校验
 	Args: func(cmd *cobra.Command, args []string) error {
 		// 参数个数校验

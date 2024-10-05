@@ -1,11 +1,7 @@
 package util
 
 import (
-	"fmt"
 	"gitee.com/swsk33/jar-to-exe-go-wrapper/config"
-	"github.com/spf13/viper"
-	"golang.org/x/text/encoding/simplifiedchinese"
-	"golang.org/x/text/transform"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,12 +17,12 @@ var JavaCommand = "java"
 // SetupJavaCommand 根据配置，初始化Java命令（Java命令所在的路径）
 func SetupJavaCommand() {
 	// 如果使用嵌入的JRE，那么直接指定路径为嵌入的JRE路径
-	if viper.GetBool(config.UseEmbedJRE) {
+	if config.GlobalConfig.Build.UseEmbedJre {
 		JavaCommand = filepath.Join(TempDirectory, "jre", "bin", "java")
 		return
 	}
 	// 如果指定了外部便携JRE路径，则转换为绝对路径
-	jrePath := viper.GetString(config.JavaPath)
+	jrePath := config.GlobalConfig.Run.JavaPath
 	if jrePath != "java" {
 		JavaCommand = filepath.Join(SelfPath, jrePath, "java")
 	}
@@ -41,7 +37,7 @@ func SetupJavaCommand() {
 func getCmd(name string, args ...string) *exec.Cmd {
 	cmd := exec.Command(name, args...)
 	// 如果程序为GUI程序，则阻止命令运行时弹出命令行窗口
-	if viper.GetBool(config.WinAPP) {
+	if config.GlobalConfig.Build.WinApp {
 		cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	}
 	return cmd
@@ -60,18 +56,12 @@ func JavaExists() bool {
 //
 // message 消息
 func ShowErrorDialog(message string) {
-	// 准备vbs脚本
-	vbsContent := fmt.Sprintf("MsgBox \"%s\", 16, \"错误\"", message)
-	// 转换编码
-	encoder := simplifiedchinese.GBK.NewEncoder()
-	gbkText, _, _ := transform.String(encoder, vbsContent)
-	vbsPath := filepath.Join(TempDirectory, "message.vbs")
-	vbsFile, _ := os.OpenFile(vbsPath, os.O_WRONLY|os.O_CREATE, 0755)
-	_, _ = vbsFile.WriteString(gbkText)
-	_ = vbsFile.Close()
-	// 执行vbs脚本
-	cmd := getCmd("wscript", vbsPath)
-	_ = cmd.Run()
+	messageScript := `
+	Add-Type -AssemblyName System.Windows.Forms
+	[System.Windows.Forms.MessageBox]::Show("` + message + `", "错误", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Error)
+	`
+	command := exec.Command("powershell", "-Command", messageScript)
+	_ = command.Run()
 }
 
 // GetJarRunCmd 获取一个执行jar文件的命令对象
@@ -79,7 +69,7 @@ func ShowErrorDialog(message string) {
 // 返回cmd命令对象和日志文件指针，若未配置输出为日志，则日志文件指针为nil
 func GetJarRunCmd() (*exec.Cmd, *os.File) {
 	// 解析预先配置参数
-	preArgs := viper.GetStringSlice(config.PreParameters)
+	preArgs := config.GlobalConfig.Run.PreParameters
 	for i := range preArgs {
 		preArgs[i] = strings.TrimSpace(preArgs[i])
 	}
@@ -94,11 +84,10 @@ func GetJarRunCmd() (*exec.Cmd, *os.File) {
 	// 构建cmd对象
 	cmd := getCmd(JavaCommand, commandSlice...)
 	// 重定向程序输出
-	writeLog := viper.GetBool(config.WriteLogToFile)
 	var logFile *os.File = nil
-	if writeLog {
+	if config.GlobalConfig.Log.WriteToFile {
 		// 如果输出日志，则重定向至文件
-		logFile, _ = os.OpenFile(filepath.Join(SelfPath, viper.GetString(config.LogPath)), os.O_CREATE|os.O_APPEND, 0755)
+		logFile, _ = os.OpenFile(filepath.Join(SelfPath, config.GlobalConfig.Log.Path), os.O_CREATE|os.O_APPEND, 0755)
 		// 把标准输出和标准错误重定向至这个文件
 		cmd.Stdout = logFile
 		cmd.Stderr = logFile
