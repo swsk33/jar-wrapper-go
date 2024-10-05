@@ -33,6 +33,17 @@ jar2exe-go version
 
 如果能输出版本信息说明配置成功。
 
+### (3) 命令自动补全脚本
+
+下载解压后，除了命令程序本身`exe`文件、`wrapper`包装器代码模板之外，还有下列脚本文件，是用于命令自动补全的，将该脚本配置到对应的终端后，使用`jar2exe-go`命令时即可按下Tab键自动补全命令：
+
+- `jar2exe-go.fish` 用于Fish Shell的自动补全脚本，在Windows中通常是在Msys2环境下运行Fish Shell，将该文件放到`你的Msys2安装目录\etc\fish\completions`目录下即可，请勿修改文件名
+- `jar2exe-go-completion.bash` 用于Bash Shell的自动补全脚本，在Windows中可以在Git Bash或者Msys2环境中运行Bash Shell，这里分别说明：
+	- 使用Git Bash时，将`jar2exe-go-completion.bash`文件的扩展名改成`sh`，然后放到`你的Git安装目录\etc\profile.d`目录下
+	- 使用Msys2时，直接把`jar2exe-go-completion.bash`文件放在`你的Msys2安装目录\etc\bash_completion.d`目录下
+
+将文件放在对应位置后，配置就完成了，重启终端，后续在使用`jar2exe-go`命令时，即可使用Tab键补全命令。
+
 ## 3，打包教程
 
 使用`jar2exe-go`工具将`jar`打包成`exe`是非常简单的，执行下列命令即可查看帮助：
@@ -102,20 +113,20 @@ build:
 现在通过下列命令将`demo.jar`打包为`demo.exe`并保存在当前目录下：
 
 ```bash
-jar2exe-go -j demo.jar -o demo.exe
+jar2exe-go build demo.jar demo.exe
 ```
 
-> 使用`-j`和`-o`参数指定路径时，可以使用相对路径或者绝对路径，若路径中带有空格，则需要用英文双引号`"`包围路径。
+> 可以指定相对路径或者绝对路径，若路径中带有空格，则需要用英文双引号`"`包围路径。
 
 显示构建成功即可：
 
-![image-20231013194904490](https://swsk33-note.oss-cn-shanghai.aliyuncs.com/image-20231013194904490.png)
+![image-20241005234121458](https://swsk33-note.oss-cn-shanghai.aliyuncs.com/image-20241005234121458.png)
 
 这时，我们就成功地生成了`exe`文件了！
 
 ![image-20231013194926147](https://swsk33-note.oss-cn-shanghai.aliyuncs.com/image-20231013194926147.png)
 
-双击`exe`即可运行，或者通过cmd或者其它命令行终端调用也可以，并且可以正常地接受命令行参数。
+双击`exe`即可运行，或者通过`cmd`或者其它命令行终端调用也可以，并且可以正常地接受命令行参数。
 
 该`exe`文件可以单独地存在，不依赖于原有的`jar`文件，但是这并不意味着它脱离了Java运行环境后还能够运行，当然如果你希望`exe`文件能够脱离Java运行环境也可以正常运行的话，也是可以做到的，参考下面内嵌JRE部分。
 
@@ -129,13 +140,13 @@ jar2exe-go -j demo.jar -o demo.exe
 
 ```bash
 # 配置文件位于当前目录下，名为cfg.yaml
-jar2exe-go -j demo.jar -o demo.exe -c cfg.yaml
+jar2exe-go build demo.jar demo.exe -c cfg.yaml
 
 # 配置文件位于当前目录下的cfg文件夹中，名为config.yaml
-jar2exe-go -j demo.jar -o demo.exe -c ./cfg/config.yaml
+jar2exe-go build demo.jar demo.exe -c ./cfg/config.yaml
 
 # 配置文件位于上一级目录下，名为config.yaml
-jar2exe-go -j demo.jar -o demo.exe -c ../config.yaml
+jar2exe-go build demo.jar demo.exe -c ../config.yaml
 ```
 
 同样地，如果说指定的配置文件路径包含空格，则需要使用英文双引号进行包围。
@@ -157,7 +168,7 @@ jar2exe-go -j demo.jar -o demo.exe -c ../config.yaml
 
 ```bash
 # gopher.png位于当前路径下
-jar2exe-go -j demo.jar -o demo.exe -i gopher.png
+jar2exe-go build demo.jar demo.exe -i gopher.png
 ```
 
 这样，我们就能够得到一个带有图标的`exe`文件：
@@ -216,7 +227,7 @@ run:
 因此你可以在构建时加上`-g`参数，这样启动程序时就不会显示命令行窗口了！
 
 ```bash
-jar2exe-go -j demo-gui.jar -o demo-gui.exe -g
+jar2exe-go build demo-gui.jar demo-gui.exe -g
 ```
 
 除了窗口应用程序，一些后台应用程序也可以使用`-g`隐藏控制台窗口。
@@ -275,7 +286,7 @@ run:
 那么执行下列构建命令：
 
 ```bash
-jar2exe-go -j demo.jar -o demo.exe --embed-jre --embed-jre-path ./jre17
+jar2exe-go build demo.jar demo.exe --embed-jre --embed-jre-path ./jre17
 ```
 
 这样，生成的`exe`中就是包含了你指定的JRE的，这个`exe`可以完全地单独存在，不依赖于任何外部的JRE就可以正常运行。
@@ -293,7 +304,7 @@ jar2exe-go -j demo.jar -o demo.exe --embed-jre --embed-jre-path ./jre17
 在构建时加上`--auto-embed-jre`参数即可一键生成并嵌入JRE到`exe`中去：
 
 ```bash
-jar2exe-go -j demo.jar -o demo.exe --auto-embed-jre
+jar2exe-go build demo.jar demo.exe --auto-embed-jre
 ```
 
 这样，得到的`exe`也是包含了JRE的，可以完全单独运行。
@@ -316,7 +327,7 @@ jar2exe-go -j demo.jar -o demo.exe --auto-embed-jre
 
 ```bash
 # 生成32位exe程序
-jar2exe-go -j demo-gui.jar -o demo-gui.exe -a i386
+jar2exe-go build demo-gui.jar demo-gui.exe -a i386
 ```
 
 一般来说，`32`位`exe`可以在`32`位和`64`位操作系统上运行，而`64`位`exe`只能够在`64`位操作系统上运行。
@@ -342,5 +353,3 @@ jar2exe-go -j demo-gui.jar -o demo-gui.exe -a i386
 
 - Go语言内嵌资源文件：[传送门](https://juejin.cn/post/7288963080855568421)
 - Go语言自定义`exe`图标：[传送门](https://juejin.cn/post/7281118263966351372)
-
-> 最后更新：2023.10.15

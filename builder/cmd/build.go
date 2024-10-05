@@ -59,12 +59,15 @@ var buildCmd = &cobra.Command{
 		jarPath := args[0]
 		exePath := args[1]
 		defer util.CleanTemp()
+		var e error
 		// 如果指定了图标，则先构建资源
-		sclog.InfoLine("正在构建资源文件...")
-		e := util.BuildIconResource(iconPath)
-		if e != nil {
-			sclog.ErrorLine(e.Error())
-			return
+		if iconPath != "" {
+			sclog.InfoLine("正在构建资源文件...")
+			e = util.BuildIconResource(iconPath)
+			if e != nil {
+				sclog.ErrorLine(e.Error())
+				return
+			}
 		}
 		// 判断是否指定了嵌入JRE运行环境
 		embedPath := ""
