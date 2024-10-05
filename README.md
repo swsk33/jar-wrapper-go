@@ -28,7 +28,7 @@ go install github.com/tc-hib/go-winres@latest
 然后打开终端，测试命令`jar2exe-go`是否可用：
 
 ```bash
-jar2exe-go -v
+jar2exe-go version
 ```
 
 如果能输出版本信息说明配置成功。

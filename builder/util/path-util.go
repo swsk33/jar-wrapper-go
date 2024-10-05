@@ -24,8 +24,7 @@ func SetupPath() {
 	// 否则，寻找当前路径下的
 	WrapperPath, _ = filepath.Abs("wrapper")
 	if !FileExists(WrapperPath) {
-		sclog.ErrorLine("请将包装器代码wrapper文件夹放在可执行文件所在目录下，或者当前运行目录下！")
-		sclog.ErrorLine("即将退出...")
-		os.Exit(1)
+		sclog.WarnLine("找不到包装器代码模板！程序可能无法正常运行！")
+		sclog.WarnLine("请将包装器代码wrapper文件夹放在可执行文件所在目录下，或者当前运行目录下！")
 	}
 }

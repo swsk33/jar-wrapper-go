@@ -1,15 +1,15 @@
 # Java
-/**/*.jar
+*.jar
 
 # VSCode
-/**/.vscode/
+.vscode/
 
 # IDEA
-/**/.idea/
-/**/*.iml
+.idea/
+*.iml
 
 # Go
-/**/*.exe
+*.exe
 
 # build
-/target/
+target/

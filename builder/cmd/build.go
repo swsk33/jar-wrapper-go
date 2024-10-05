@@ -32,6 +32,7 @@ var buildExamples = []*util.CommandExample{
 	{"jar2exe-go build demo.jar demo.exe -c dir/config.yaml", "将当前目录下demo.jar构建打包为demo.exe，使用./dir/config.yaml作为配置文件"},
 	{"jar2exe-go build demo.jar demo.exe -i gopher.png", "将当前目录下demo.jar构建打包为demo.exe，使用gopher.png作为exe图标"},
 	{"jar2exe-go build demo.jar demo.exe -g", "将当前目录下demo.jar构建打包为demo.exe，该程序为窗体应用程序"},
+	{"jar2exe-go build demo.jar demo.exe -a i386", "将当前目录下demo.jar构建打包为32位的demo.exe可执行文件"},
 	{"jar2exe-go build demo.jar demo.exe --embed-jre --embed-jre-path jre17", "将当前目录下demo.jar构建打包为demo.exe，并内嵌JRE文件夹：./jre17作为内嵌的运行环境"},
 	{"jar2exe-go build demo.jar demo.exe --auto-embed-jre", "将当前目录下demo.jar构建打包为demo.exe，并自动内嵌JRE运行环境"},
 }
